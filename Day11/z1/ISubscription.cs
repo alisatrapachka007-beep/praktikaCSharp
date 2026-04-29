@@ -1,0 +1,4 @@
+﻿interface ISubscription
+{
+    string GetBenefits();
+}

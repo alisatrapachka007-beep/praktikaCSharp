@@ -1,0 +1,4 @@
+﻿interface IPost
+{
+    string GetContent();
+}
