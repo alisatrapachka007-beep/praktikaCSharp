@@ -1,0 +1,20 @@
+﻿<Window x:Class="MedicalRecordsApp.AddRecordDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Добавить медицинскую запись" Height="350" Width="400"
+        WindowStartupLocation="CenterOwner" Background="#F0F4F8">
+
+    <StackPanel Margin="20">
+        <TextBlock Text="Диагноз:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox x:Name="DiagnosisTextBox" Margin="0,0,0,15"/>
+
+        <TextBlock Text="Заметки врача:" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox x:Name="DoctorNotesTextBox" Height="100" TextWrapping="Wrap"
+                 AcceptsReturn="True" Margin="0,0,0,20"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="OK" Width="80" Click="OkButton_Click" Margin="0,0,10,0"/>
+            <Button Content="Отмена" Width="80" Click="CancelButton_Click" Background="Gray"/>
+        </StackPanel>
+    </StackPanel>
+</Window>
