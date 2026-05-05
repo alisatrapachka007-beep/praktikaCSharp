@@ -1,0 +1,285 @@
+﻿<Window x:Class="MedicalRecordsApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:MedicalRecordsApp.ViewModels"
+        xmlns:models="clr-namespace:MedicalRecordsApp.Models"
+        Title="Медицинские записи" Height="750" Width="1000"
+        Background="#F0F4F8"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <ControlTemplate x:Key="MedicalButtonTemplate" TargetType="Button">
+            <Border x:Name="border" 
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="8"
+                    Padding="12,8">
+                <StackPanel Orientation="Horizontal">
+
+                    <Grid Width="20" Height="20" Margin="0,0,8,0">
+                        <Rectangle Fill="Red" Width="4" Height="20" HorizontalAlignment="Center"/>
+                        <Rectangle Fill="Red" Width="20" Height="4" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="border" Property="Background" Value="#3A5A8C"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="border" Property="Background" Value="#2C4A6E"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <DataTemplate DataType="{x:Type models:Patient}">
+            <Border BorderBrush="#D0D7DE" BorderThickness="0,0,0,1" Padding="8,5">
+                <StackPanel>
+                    <TextBlock FontWeight="Bold" FontSize="14">
+                        <Run Text="{Binding FullName, Mode=OneWay}"/>
+                        <Run Text=" ("/>
+                        <Run Text="{Binding Age, Mode=OneWay}"/>
+                        <Run Text=" лет)"/>
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="#4A6FA5">
+                        <Run Text="Диагноз: "/>
+                        <Run Text="{Binding CurrentDiagnosis, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="Gray"
+                               Text="{Binding LastVisitInfo, Mode=OneWay}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#4A6FA5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3A5A8C"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#B0BEC5"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D0D7DE"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#D0D7DE"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="BorderBrush" Value="#D0D7DE"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style TargetType="DatePicker">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Gesture="Ctrl+R" Command="{Binding RegisterPatientCommand}"/>
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding EditRecordCommand}"/>
+        <KeyBinding Gesture="Del" Command="{Binding DeleteRecordCommand}"/>
+    </Window.InputBindings>
+
+    <DockPanel>
+        <Menu DockPanel.Dock="Top" Background="#E9EDF2">
+            <MenuItem Header="_Файл">
+                <MenuItem Header="_Выход" Command="{Binding ExitCommand}" InputGestureText="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="_Пациенты">
+                <MenuItem Header="_Регистрация пациента" Command="{Binding RegisterPatientCommand}" InputGestureText="Ctrl+R"/>
+            </MenuItem>
+            <MenuItem Header="_Записи">
+                <MenuItem Header="_Редактировать запись" Command="{Binding EditRecordCommand}" InputGestureText="Ctrl+E"/>
+                <Separator/>
+                <MenuItem Header="_Удалить запись" Command="{Binding DeleteRecordCommand}" InputGestureText="Del"/>
+            </MenuItem>
+            <MenuItem Header="_Настройки">
+                <MenuItem Header="_О программе" Click="AboutMenuItem_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <ToolBar DockPanel.Dock="Top" Background="#E9EDF2">
+            <Button Command="{Binding RegisterPatientCommand}" ToolTip="Регистрация пациента (Ctrl+R)">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Записать пациента"/>
+                </StackPanel>
+            </Button>
+
+            <Separator/>
+
+            <Button Command="{Binding RegisterPatientCommand}" 
+                    ToolTip="Добавить запись (Ctrl+R)"
+                    Template="{StaticResource MedicalButtonTemplate}"
+                    Background="#4A6FA5"
+                    Foreground="White">
+                Добавить запись
+            </Button>
+
+            <Separator/>
+
+            <Button Command="{Binding EditRecordCommand}" ToolTip="Редактировать запись (Ctrl+E)">
+                <StackPanel Orientation="Horizontal"/>
+            </Button>
+
+            <Button Command="{Binding DeleteRecordCommand}" ToolTip="Удалить запись (Del)">
+                <StackPanel Orientation="Horizontal"/>
+            </Button>
+        </ToolBar>
+
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Медицинские записи" FontSize="24" FontWeight="Bold"
+                       Foreground="#2C3E50" Margin="0,0,0,15"
+                       HorizontalAlignment="Center"/>
+
+            <TabControl Grid.Row="1">
+                <TabItem Header="Пациенты и история" Background="#E9EDF2">
+                    <Grid Margin="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <Border Background="White" BorderBrush="#D0D7DE" 
+                                    BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="Фильтр по дате последнего посещения" 
+                                               FontWeight="Bold" Margin="0,0,0,8"/>
+                                    <TextBlock Text="От:" FontSize="11" Foreground="#4A6FA5"/>
+                                    <DatePicker SelectedDate="{Binding FilterFromDate, Mode=TwoWay}" 
+                                                Margin="0,0,0,5"/>
+                                    <TextBlock Text="До:" FontSize="11" Foreground="#4A6FA5"/>
+                                    <DatePicker SelectedDate="{Binding FilterToDate, Mode=TwoWay}" 
+                                                Margin="0,0,0,8"/>
+                                    <Button Command="{Binding ClearFilterCommand}" 
+                                            Background="#E9EDF2" Foreground="#2C3E50"
+                                            HorizontalAlignment="Stretch">
+                                        Сбросить фильтр
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="Список пациентов" FontWeight="Bold" Margin="0,0,0,5"/>
+                            <ListBox ItemsSource="{Binding Patients}"
+                                     SelectedItem="{Binding SelectedPatient, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="420"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1">
+                            <Border Background="White" BorderBrush="#D0D7DE" 
+                                    BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock 
+                                               FontWeight="Bold" FontSize="14" 
+                                               Foreground="#2C3E50" Margin="0,0,0,10"><Run Language="ru-ru" Text="Д"/><Run Text="анны"/><Run Language="ru-ru" Text="е"/><Run Text=" пациента"/></TextBlock>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="ФИО:" Grid.Row="0" Grid.Column="0" 
+                                                   VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBox Text="{Binding SelectedPatient.FullName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Grid.Row="0" Grid.Column="1" 
+                                                 IsEnabled="{Binding SelectedPatient, FallbackValue=False}"/>
+
+                                        <TextBlock Text="Возраст:" Grid.Row="1" Grid.Column="0" 
+                                                   VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBox Text="{Binding SelectedPatient.Age, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Grid.Row="1" Grid.Column="1" 
+                                                 IsEnabled="{Binding SelectedPatient, FallbackValue=False}"/>
+
+                                        <TextBlock Text="Диагноз:" Grid.Row="2" Grid.Column="0" 
+                                                   VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBox Text="{Binding SelectedPatient.CurrentDiagnosis, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Grid.Row="2" Grid.Column="1" 
+                                                 IsEnabled="{Binding SelectedPatient, FallbackValue=False}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="История болезни (прошлые приемы)" 
+                                       FontWeight="Bold" FontSize="14" 
+                                       Foreground="#2C3E50" Margin="0,0,0,8"/>
+                            <DataGrid ItemsSource="{Binding CurrentPatientRecords}"
+                                      SelectedItem="{Binding SelectedRecord}"
+                                      Height="280" Margin="0,0,0,5"
+                                      AutoGenerateColumns="False" SelectionChanged="DataGrid_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header=" Дата" 
+                                                        Binding="{Binding Date, StringFormat='dd.MM.yyyy'}" 
+                                                        Width="100"/>
+                                    <DataGridTextColumn Header=" Диагноз" 
+                                                        Binding="{Binding Diagnosis}" 
+                                                        Width="150"/>
+                                    <DataGridTextColumn Header=" Заметки врача" 
+                                                        Binding="{Binding DoctorNotes}" 
+                                                        Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <TextBlock FontSize="10" Foreground="Gray" Margin="0,5,0,0">
+                                <Run Text="Всего записей: "/>
+                                <Run Text="{Binding CurrentPatientRecords.Count, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="О программе" Background="#E9EDF2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="20" VerticalAlignment="Center">
+                            <TextBlock Text="🏥 Медицинские записи 2026" 
+                                       FontSize="20" FontWeight="Bold" 
+                                       TextAlignment="Center" Margin="0,0,0,15"
+                                       Foreground="#2C3E50"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </DockPanel>
+</Window>
