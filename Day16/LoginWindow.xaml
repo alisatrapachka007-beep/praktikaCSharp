@@ -1,0 +1,33 @@
+﻿<Window x:Class="Day15.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Авторизация - Медицинские записи" Height="400" Width="400"
+        WindowStartupLocation="CenterScreen" Background="#F0F4F8">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Медицинские записи" FontSize="22" FontWeight="Bold" 
+                   Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+        <TextBlock Grid.Row="1" Text="Логин" FontWeight="Bold" Margin="0,0,0,5"/>
+        <TextBox Grid.Row="2" x:Name="LoginTextBox" Margin="0,0,0,15" Padding="10" FontSize="14"/>
+
+        <TextBlock Grid.Row="3" Text="Пароль" FontWeight="Bold" Margin="0,0,0,5"/>
+        <PasswordBox Grid.Row="4" x:Name="PasswordBox" Margin="0,0,0,20" Padding="10" FontSize="14"/>
+
+        <TextBlock Grid.Row="5" x:Name="ErrorTextBlock" Foreground="Red" TextWrapping="Wrap" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+            <Button Content="Войти" Width="100" Height="35" Click="LoginButton_Click" Margin="0,0,10,0" FontSize="14" Background="#1E90FF" Foreground="White"/>
+            <Button Content="Тестовые данные" Width="120" Height="35" Click="TestDataButton_Click" Background="#ADD8E6" Foreground="White" FontSize="12"/>
+        </StackPanel>
+    </Grid>
+</Window>
