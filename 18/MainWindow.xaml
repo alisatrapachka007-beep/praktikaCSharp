@@ -1,0 +1,371 @@
+﻿<Window x:Class="Day15.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:Day15.Models"
+        xmlns:converters="clr-namespace:Day15.Converters"
+        Title="Медицинские записи" Height="750" Width="1100"
+        WindowStartupLocation="CenterScreen" Closing="Window_Closing"
+        Background="#F0F4F8">
+
+    <Window.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility"/>
+        <converters:ImportanceToColorConverter x:Key="ImportanceToColorConverter"/>
+
+        <!-- Анимация плавного появления (Fade In) -->
+        <Storyboard x:Key="FadeInAnimation">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                            From="0" To="1" Duration="0:0:0.8"/>
+        </Storyboard>
+
+        <!-- Анимация подсветки важной записи -->
+        <Storyboard x:Key="HighlightAnimation">
+            <ColorAnimation Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                           From="#FFFF6B" To="#FFFFFF" Duration="0:0:2" AutoReverse="False"/>
+        </Storyboard>
+
+        <!-- Простой круговой спиннер (рабочий) -->
+        <Style x:Key="SimpleSpinner" TargetType="Control">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Control">
+                        <Grid Width="32" Height="32">
+                            <Ellipse Width="28" Height="28" Stroke="#D0D7DE" StrokeThickness="3"/>
+                            <Ellipse Width="28" Height="28" Stroke="#4A6FA5" StrokeThickness="3"
+                                     StrokeDashArray="4,6" StrokeDashCap="Round">
+                                <Ellipse.RenderTransform>
+                                    <RotateTransform Angle="-45" CenterX="14" CenterY="14"/>
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Простой текстовый спиннер (всегда работает) -->
+        <Style x:Key="TextSpinner" TargetType="Control">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Control">
+                        <StackPanel>
+                            <TextBlock Text="⟳" FontSize="24" Foreground="#4A6FA5" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Загрузка..." FontSize="12" Foreground="#4A6FA5" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стили для кнопок -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#4A6FA5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3A5A8C"/>
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                               To="1.05" Duration="0:0:0.1"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                               To="1.05" Duration="0:0:0.1"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX"
+                                               To="1" Duration="0:0:0.1"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY"
+                                               To="1" Duration="0:0:0.1"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Стиль для DataGrid строк с анимацией появления по одной -->
+        <Style TargetType="DataGridRow">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="Margin" Value="-20,0,0,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsVisible" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                               To="1" Duration="0:0:0.3"
+                                               BeginTime="0:0:0"/>
+                                <ThicknessAnimation Storyboard.TargetProperty="Margin"
+                                                   From="-20,0,0,0" To="0,0,0,0" Duration="0:0:0.3"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Шаблон для отображения пациента в списке -->
+        <DataTemplate DataType="{x:Type models:Patient}">
+            <Border BorderBrush="#D0D7DE" BorderThickness="0,0,0,1" Padding="10,8" CornerRadius="5"
+                    Background="White" Margin="0,2">
+                <StackPanel>
+                    <TextBlock FontWeight="Bold" FontSize="14" Foreground="#2C3E50">
+                        <Run Text="{Binding FullName}"/>
+                        <Run Text=" ("/>
+                        <Run Text="{Binding Age}"/>
+                        <Run Text=" лет)"/>
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="#4A6FA5">
+                        <Run Text="Диагноз: "/>
+                        <Run Text="{Binding Diagnosis}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="10" Foreground="Gray" Text="{Binding LastVisitInfo}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding AddPatientCommand}"/>
+        <KeyBinding Gesture="Ctrl+R" Command="{Binding AddRecordCommand}"/>
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding EditRecordCommand}"/>
+        <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding OpenChatCommand}"/>
+        <KeyBinding Gesture="Del" Command="{Binding DeleteRecordCommand}"/>
+        <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}"/>
+    </Window.InputBindings>
+
+    <DockPanel>
+        <Menu DockPanel.Dock="Top" Background="#E9EDF2">
+            <MenuItem Header="_Файл">
+                <MenuItem Header="_Выход" Click="ExitMenuItem_Click" InputGestureText="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="_Пациенты">
+                <MenuItem Header="_Новый пациент" Command="{Binding AddPatientCommand}" InputGestureText="Ctrl+N"/>
+            </MenuItem>
+            <MenuItem Header="_Записи">
+                <MenuItem Header="_Добавить запись" Command="{Binding AddRecordCommand}" InputGestureText="Ctrl+R"/>
+                <MenuItem Header="_Редактировать" Command="{Binding EditRecordCommand}" InputGestureText="Ctrl+E"/>
+                <MenuItem Header="_Удалить" Command="{Binding DeleteRecordCommand}" InputGestureText="Del"/>
+            </MenuItem>
+            <MenuItem Header="_Общение">
+                <MenuItem Header="_Открыть чат" Command="{Binding OpenChatCommand}" InputGestureText="Ctrl+Shift+C"/>
+            </MenuItem>
+            <MenuItem Header="_Справка">
+                <MenuItem Header="_О программе" Click="AboutMenuItem_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <ToolBar DockPanel.Dock="Top" Background="#E9EDF2">
+            <Button Command="{Binding AddPatientCommand}" ToolTip="Новый пациент (Ctrl+N)">📋 Новый пациент</Button>
+            <Button Command="{Binding AddRecordCommand}" ToolTip="Добавить запись (Ctrl+R)">📝 Добавить запись</Button>
+            <Button Command="{Binding EditRecordCommand}" ToolTip="Редактировать (Ctrl+E)">✏️ Редактировать</Button>
+            <Button Command="{Binding DeleteRecordCommand}" ToolTip="Удалить (Del)">🗑️ Удалить</Button>
+            <Separator/>
+            <Button Command="{Binding OpenChatCommand}" ToolTip="Чат (Ctrl+Shift+C)">💬 Чат</Button>
+            <Button Command="{Binding RefreshCommand}" ToolTip="Обновить (F5)">🔄 Обновить</Button>
+        </ToolBar>
+
+        <StatusBar DockPanel.Dock="Bottom" Background="#E9EDF2">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusTextBlock" Text="Готов" Foreground="Gray"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock x:Name="UserInfoTextBlock" FontWeight="Bold"/>
+            </StatusBarItem>
+        </StatusBar>
+
+        <Grid x:Name="MainGrid" Margin="10" Opacity="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Левая панель: список пациентов -->
+            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                <!-- Карточка фильтра -->
+                <Border Background="White" BorderBrush="#D0D7DE" BorderThickness="1" 
+                        CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="📅 Фильтр по дате" FontWeight="Bold" Margin="0,0,0,10" FontSize="13"/>
+                        <TextBlock Text="От:" FontSize="11" Foreground="#4A6FA5"/>
+                        <DatePicker SelectedDate="{Binding FilterFromDate}" Margin="0,5,0,10"/>
+                        <TextBlock Text="До:" FontSize="11" Foreground="#4A6FA5"/>
+                        <DatePicker SelectedDate="{Binding FilterToDate}" Margin="0,5,0,15"/>
+                        <Button Command="{Binding ClearFilterCommand}" Background="#E9EDF2" 
+                                Foreground="#2C3E50" HorizontalAlignment="Stretch">Сбросить</Button>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="👥 Список пациентов" FontWeight="Bold" FontSize="14" 
+                           Margin="0,0,0,10" Foreground="#2C3E50"/>
+
+                <!-- Индикатор загрузки для списка пациентов -->
+                <Border Background="White" BorderBrush="#D0D7DE" BorderThickness="1" 
+                        CornerRadius="5" Padding="20" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <Control Style="{StaticResource TextSpinner}" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="{Binding LoadingMessage}" HorizontalAlignment="Center" 
+                                   Foreground="#4A6FA5" FontSize="13" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <ListBox x:Name="PatientsListBox" 
+                         ItemsSource="{Binding Patients}"
+                         SelectedItem="{Binding SelectedPatient}"
+                         Background="Transparent" BorderThickness="0"
+                         Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVisibility}}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Margin" Value="0,3"/>
+                            <Setter Property="Opacity" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsVisible" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                               To="1" Duration="0:0:0.3"
+                                                               BeginTime="0:0:0.1"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                    <Setter Property="BorderBrush" Value="#4A6FA5"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </StackPanel>
+
+            <!-- Правая панель: детали и записи -->
+            <StackPanel Grid.Column="1">
+                <!-- Карточка пациента -->
+                <Border Background="#1E90FF" BorderBrush="#D0D7DE" BorderThickness="1" 
+                        CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock FontWeight="Bold" FontSize="15" Foreground="#2C3E50" Margin="0,0,0,12">
+                            📋 Карточка пациента
+                        </TextBlock>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="ФИО:" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding SelectedPatient.FullName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Grid.Row="0" Grid.Column="1" Margin="5,5"/>
+
+                            <TextBlock Text="Возраст:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <TextBox Text="{Binding SelectedPatient.Age, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Grid.Row="1" Grid.Column="1" Margin="5,8,5,5"/>
+
+                            <TextBlock Text="Диагноз:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                            <TextBox Text="{Binding SelectedPatient.Diagnosis, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                     Grid.Row="2" Grid.Column="1" Margin="5,8,5,5"/>
+                        </Grid>
+                        <Button Command="{Binding SavePatientChangesCommand}" HorizontalAlignment="Right" Margin="0,15,0,0">
+                            💾 Сохранить изменения
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="📚 История болезни" FontWeight="Bold" FontSize="14" 
+                           Foreground="#2C3E50" Margin="0,0,0,10"/>
+
+                <!-- Индикатор загрузки для истории болезни -->
+                <Border Background="White" BorderBrush="#D0D7DE" BorderThickness="1" 
+                        CornerRadius="5" Padding="20" Visibility="{Binding IsLoadingHistory, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <Control Style="{StaticResource TextSpinner}" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="{Binding LoadingMessage}" HorizontalAlignment="Center" 
+                                   Foreground="#4A6FA5" FontSize="13" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- DataGrid с записями -->
+                <DataGrid x:Name="RecordsDataGrid" 
+                          ItemsSource="{Binding CurrentPatientHistory}"
+                          SelectedItem="{Binding SelectedRecord}"
+                          Height="280" Margin="0,0,0,5"
+                          Background="White" BorderBrush="#D0D7DE" BorderThickness="1"
+                          AutoGenerateColumns="False" IsReadOnly="True"
+                          Visibility="{Binding IsLoadingHistory, Converter={StaticResource InverseBoolToVisibility}}"
+                          RowBackground="#FFFFFF" AlternatingRowBackground="#F8F9FA">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="📅 Дата" Binding="{Binding Date, StringFormat='dd.MM.yyyy'}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="🏥 Диагноз" Binding="{Binding Diagnosis}" Width="150">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                    <Setter Property="Foreground" Value="{Binding Diagnosis, Converter={StaticResource ImportanceToColorConverter}}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="📝 Заметки врача" Binding="{Binding DoctorNotes}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="5"/>
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Command="{Binding AddRecordCommand}" Background="#1E90FF" ToolTip="Добавить запись">
+                        ➕ Добавить запись
+                    </Button>
+                    <Button Command="{Binding EditRecordCommand}" Background="#FFC107" Foreground="#2C3E50" ToolTip="Редактировать">
+                        ✏️ Редактировать
+                    </Button>
+                    <Button Command="{Binding DeleteRecordCommand}" Background="#DC3545" ToolTip="Удалить">
+                        🗑️ Удалить
+                    </Button>
+                </StackPanel>
+
+                <TextBlock FontSize="10" Foreground="Gray" Margin="0,40,0,0">
+                    <Run Text="📊 Всего записей: "/>
+                    <Run Text="{Binding CurrentPatientHistory.Count, Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>
